@@ -24,6 +24,23 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    signingConfigs {
+        release {
+            // Uses the auto-generated debug keystore so the release build
+            // is actually signed and can be installed directly on a phone.
+            storeFile = signingConfigs.debug.storeFile
+            storePassword = signingConfigs.debug.storePassword
+            keyAlias = signingConfigs.debug.keyAlias
+            keyPassword = signingConfigs.debug.keyPassword
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.release
+        }
+    }
 }
 
 flutter {
