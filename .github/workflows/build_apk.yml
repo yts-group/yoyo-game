@@ -22,6 +22,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Regenerate Android platform files
+        run: flutter create --platforms=android --overwrite .
+
       - name: Build APK
         run: flutter build apk --release
 
