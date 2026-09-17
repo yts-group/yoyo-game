@@ -1,0 +1,55 @@
+name: Build Android APK
+
+# بناء يدوي فقط: يشتغل لما تضغط "Run workflow" من تبويب Actions،
+# ومش بيشتغل تلقائي مع كل push حتى لا يحصل لخبطة أثناء التطوير.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.0'
+          channel: stable
+          cache: false
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Regenerate Android platform files
+        run: flutter create --platforms=android --overwrite .
+
+      - name: Restore custom Android app config
+        # flutter create --overwrite resets android/app/build.gradle and the
+        # manifest to generic defaults. Put our real versions back before we
+        # build, so the app keeps its name, icon setup and signing config.
+        run: |
+          cp android_config/build.gradle android/app/build.gradle
+          cp android_config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties << PROPS
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=../upload-keystore.jks
+          PROPS
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth-to-moon-release
+          path: build/app/outputs/flutter-apk/app-release.apk
