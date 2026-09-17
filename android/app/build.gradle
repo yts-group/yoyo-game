@@ -4,6 +4,12 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.example.earth_to_moon_learning_game"
     compileSdk = flutter.compileSdkVersion
@@ -27,12 +33,21 @@ android {
 
     signingConfigs {
         release {
-            // Uses the auto-generated debug keystore so the release build
-            // is actually signed and can be installed directly on a phone.
-            storeFile = signingConfigs.debug.storeFile
-            storePassword = signingConfigs.debug.storePassword
-            keyAlias = signingConfigs.debug.keyAlias
-            keyPassword = signingConfigs.debug.keyPassword
+            if (keystorePropertiesFile.exists()) {
+                // Stable signing key (CI or local), so every build has the
+                // SAME signature and can be installed over a previous copy.
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+                storePassword keystoreProperties['storePassword']
+            } else {
+                // Fallback for local `flutter run --release` when no
+                // key.properties exists yet: sign with the debug key.
+                storeFile = signingConfigs.debug.storeFile
+                storePassword = signingConfigs.debug.storePassword
+                keyAlias = signingConfigs.debug.keyAlias
+                keyPassword = signingConfigs.debug.keyPassword
+            }
         }
     }
 
